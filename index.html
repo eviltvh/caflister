@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Caflister — Tu tracker de cafeína</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #181820;
+    --bg4: #1e1e28;
+    --surface: #22222e;
+    --surface2: #2a2a38;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0f0f8;
+    --text2: #8888a8;
+    --text3: #55556a;
+    --accent: #c8fb4e;
+    --accent2: #96e33a;
+    --accent3: rgba(200,251,78,0.12);
+    --red: #ff4f4f;
+    --orange: #ff8c42;
+    --blue: #4fc4ff;
+    --purple: #a78bfa;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font: 'Syne', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,15,0.92);
+    backdrop-filter: blur(16px);
+    z-index: 100;
+  }
+  .logo {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .logo span { color: var(--accent); }
+  .logo-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: inline-block; }
+  .header-actions { display: flex; gap: 0.75rem; align-items: center; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text2);
+    letter-spacing: 0.02em;
+  }
+  .btn:hover { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a0f;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); color: #0a0a0f; }
+  .btn-danger { border-color: rgba(255,79,79,0.3); }
+  .btn-danger:hover { background: rgba(255,79,79,0.12); color: var(--red); border-color: var(--red); }
+  .btn svg, .btn-primary svg { width: 15px; height: 15px; }
+
+  /* ── Layout ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 0;
+    min-height: calc(100vh - 65px);
+  }
+  .left-panel {
+    padding: 1.75rem 2rem;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+  }
+  .right-panel {
+    padding: 1.75rem 1.5rem;
+    overflow-y: auto;
+  }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    gap: 1rem;
+  }
+  .toolbar-left { display: flex; align-items: center; gap: 0.75rem; }
+  .section-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .count-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 0.7rem;
+    font-family: var(--mono);
+    padding: 0.2rem 0.5rem;
+    border-radius: 20px;
+  }
+
+  /* ── Search / Filter ── */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .search-input-wrap {
+    position: relative;
+    flex: 1;
+  }
+  .search-input-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    width: 15px;
+    height: 15px;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem 0.5rem 2rem;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text3); }
+  select.filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 0.8rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  select.filter-select:focus { border-color: var(--accent); }
+
+  /* ── Product Cards ── */
+  .products-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .product-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: start;
+  }
+  .product-card:hover { border-color: var(--border2); background: var(--bg3); }
+  .product-card.selected { border-color: var(--accent); background: rgba(200,251,78,0.04); }
+  .product-card-main { min-width: 0; }
+  .product-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.2rem;
+  }
+  .product-meta {
+    font-size: 0.75rem;
+    color: var(--text2);
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+  .tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .tag.energy { color: var(--orange); border-color: rgba(255,140,66,0.3); background: rgba(255,140,66,0.08); }
+  .tag.pre { color: var(--purple); border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.08); }
+  .tag.coffee { color: #c9a76c; border-color: rgba(201,167,108,0.3); background: rgba(201,167,108,0.08); }
+  .tag.pill { color: var(--blue); border-color: rgba(79,196,255,0.3); background: rgba(79,196,255,0.08); }
+  .tag.pouch { color: #4fe89e; border-color: rgba(79,232,158,0.3); background: rgba(79,232,158,0.08); }
+  .tag.tea { color: #9fd47e; border-color: rgba(159,212,126,0.3); background: rgba(159,212,126,0.08); }
+  .tag.shot { color: var(--red); border-color: rgba(255,79,79,0.3); background: rgba(255,79,79,0.08); }
+  .tag.other { color: var(--text2); }
+
+  .stat-row {
+    display: flex;
+    gap: 0.75rem;
+  }
+  .stat-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .stat-mini-label { font-size: 0.6rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-mini-val { font-size: 0.8rem; font-family: var(--mono); font-weight: 500; color: var(--accent); }
+
+  .card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: flex-end;
+  }
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    color: var(--text3);
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { background: var(--surface); color: var(--text2); border-color: var(--border2); }
+  .icon-btn.del:hover { background: rgba(255,79,79,0.1); color: var(--red); border-color: rgba(255,79,79,0.3); }
+  .icon-btn svg { width: 13px; height: 13px; }
+
+  /* ── Empty State ── */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text3);
+  }
+  .empty-state svg { width: 40px; height: 40px; margin-bottom: 1rem; opacity: 0.4; }
+  .empty-state p { font-size: 0.85rem; line-height: 1.6; }
+
+  /* ── Right Panel ── */
+  .panel-section { margin-bottom: 1.5rem; }
+  .panel-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 0.75rem;
+  }
+
+  /* ── Radar Chart ── */
+  .radar-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .radar-canvas-wrap {
+    position: relative;
+    width: 100%;
+    height: 240px;
+  }
+
+  /* ── Scores display ── */
+  .scores-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.5rem;
+    text-align: center;
+  }
+  .score-card-label { font-size: 0.6rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
+  .score-card-val { font-size: 1.1rem; font-weight: 700; font-family: var(--mono); }
+  .score-card-val.pract { color: var(--accent); }
+  .score-card-val.price { color: var(--orange); }
+  .score-card-val.pot { color: var(--blue); }
+
+  /* ── Placeholder chart text ── */
+  .no-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 240px;
+    color: var(--text3);
+    font-size: 0.8rem;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  .no-selection svg { width: 32px; height: 32px; opacity: 0.3; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 1.75rem;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .modal-title { font-size: 1.1rem; font-weight: 700; }
+  .modal-close {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .modal-close:hover { background: var(--surface2); color: var(--text); }
+  .modal-close svg { width: 14px; height: 14px; }
+
+  /* ── Form ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+  .form-group.full { grid-column: 1 / -1; }
+  label.form-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  input.form-input, select.form-input, textarea.form-input {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.75rem;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input.form-input:focus, select.form-input:focus, textarea.form-input:focus {
+    border-color: var(--accent);
+  }
+  input.form-input::placeholder, textarea.form-input::placeholder { color: var(--text3); }
+  textarea.form-input { resize: vertical; min-height: 60px; }
+
+  .form-hint { font-size: 0.68rem; color: var(--text3); margin-top: 0.15rem; }
+
+  /* ── Slider ── */
+  .slider-group { display: flex; flex-direction: column; gap: 0.3rem; }
+  .slider-header { display: flex; justify-content: space-between; align-items: center; }
+  .slider-val { font-family: var(--mono); font-size: 0.85rem; font-weight: 500; color: var(--accent); }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    height: 4px;
+    cursor: pointer;
+  }
+
+  /* ── Divider ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+
+  /* ── Product type conditional fields ── */
+  .conditional-fields { display: none; }
+  .conditional-fields.active { display: contents; }
+
+  /* ── Form footer ── */
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
+  /* ── Score explanation tooltip ── */
+  .score-explain {
+    font-size: 0.72rem;
+    color: var(--text3);
+    padding: 0.5rem 0;
+    line-height: 1.6;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 99px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .right-panel { border-top: 1px solid var(--border); }
+    header { padding: 1rem; }
+    .left-panel, .right-panel { padding: 1.25rem 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-dot"></span>
+    caf<span>lister</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="exportCSV()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar CSV
+    </button>
+    <label class="btn" style="cursor:pointer;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Importar CSV
+      <input type="file" accept=".csv" id="csvInput" style="display:none" onchange="importCSV(event)" />
+    </label>
+    <button class="btn btn-primary" onclick="openModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Agregar
+    </button>
+  </div>
+</header>
+
+<div class="main-grid">
+  <!-- Left: product list -->
+  <div class="left-panel">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="section-title">Productos</span>
+        <span class="count-badge" id="countBadge">0</span>
+      </div>
+    </div>
+
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="searchInput" type="text" placeholder="Buscar producto…" oninput="renderList()" />
+      </div>
+      <select class="filter-select" id="typeFilter" onchange="renderList()">
+        <option value="">Todos los tipos</option>
+        <option value="energy">Energizante</option>
+        <option value="pre">Pre-entreno</option>
+        <option value="coffee">Café</option>
+        <option value="tea">Té</option>
+        <option value="pill">Pastilla/Cápsula</option>
+        <option value="pouch">Pouch/Snus</option>
+        <option value="shot">Shot</option>
+        <option value="other">Otro</option>
+      </select>
+    </div>
+
+    <div class="products-list" id="productList"></div>
+  </div>
+
+  <!-- Right: radar + detail -->
+  <div class="right-panel">
+    <div class="panel-section">
+      <div class="panel-label">Análisis radar</div>
+      <div class="radar-wrap">
+        <div class="radar-canvas-wrap">
+          <canvas id="radarChart" role="img" aria-label="Gráfica polar con puntajes de practicidad, precio y potencia"></canvas>
+          <div id="noSelection" class="no-selection">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <span>Selecciona un producto<br/>para ver su análisis</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="scores-grid" id="scoresGrid" style="display:none">
+        <div class="score-card">
+          <div class="score-card-label">Practicidad</div>
+          <div class="score-card-val pract" id="scPract">—</div>
+        </div>
+        <div class="score-card">
+          <div class="score-card-label">Precio/mg</div>
+          <div class="score-card-val price" id="scPrice">—</div>
+        </div>
+        <div class="score-card">
+          <div class="score-card-label">Potencia</div>
+          <div class="score-card-val pot" id="scPot">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section" id="detailSection" style="display:none">
+      <div class="panel-label">Detalle del producto</div>
+      <div id="detailContent"></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-label">Cómo se calculan los puntajes</div>
+      <div class="score-explain">
+        <b style="color:var(--accent)">Practicidad (1–5):</b> Qué tan rápido puedes pasar de "quiero cafeína" a tenerla. Considera preparación, disponibilidad y cantidad.<br/><br/>
+        <b style="color:var(--orange)">Precio (1–5):</b> Calculado como precio por mg de cafeína. Mejor valor → mayor puntaje. Para multi-porción (pre-entrenos) divide precio total entre (porciones × mg/porción).<br/><br/>
+        <b style="color:var(--blue)">Potencia (1–5):</b> Concentración de cafeína: mg/g, mg/mL o mg/pieza. Mayor concentración → mayor puntaje.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Agregar / Editar -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Nuevo producto</div>
+      <button class="modal-close" onclick="closeModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="form-grid">
+      <!-- Nombre -->
+      <div class="form-group full">
+        <label class="form-label">Nombre del producto *</label>
+        <input class="form-input" id="f-name" type="text" placeholder="Ej. Monster Ultra White" />
+      </div>
+
+      <!-- Tipo -->
+      <div class="form-group full">
+        <label class="form-label">Tipo de producto *</label>
+        <select class="form-input" id="f-type" onchange="onTypeChange()">
+          <option value="">Selecciona tipo…</option>
+          <option value="energy">Energizante (lata/botella)</option>
+          <option value="pre">Pre-entreno (polvo/multi-porción)</option>
+          <option value="coffee">Café</option>
+          <option value="tea">Té / Matcha</option>
+          <option value="pill">Pastilla / Cápsula</option>
+          <option value="pouch">Pouch / Snus de cafeína</option>
+          <option value="shot">Shot de cafeína</option>
+          <option value="other">Otro</option>
+        </select>
+      </div>
+
+      <!-- CAMPOS: energizante / shot / other – por pieza/lata -->
+      <div class="conditional-fields" id="cf-single">
+        <div class="form-group full" style="grid-column:1/-1">
+          <div class="form-hint" style="margin:0;padding:0.4rem 0.6rem;background:var(--surface);border-radius:var(--radius-sm);border-left:2px solid var(--accent)">
+            💡 Para latas, botellas o shots: ingresa el total de cafeína en esa presentación y el volumen/peso total.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cafeína total (mg) *</label>
+          <input class="form-input" id="f-mg-total" type="number" min="0" step="0.1" placeholder="Ej. 160" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio ($) *</label>
+          <input class="form-input" id="f-price-single" type="number" min="0" step="0.5" placeholder="Ej. 40" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Volumen (mL) / Peso (g)</label>
+          <input class="form-input" id="f-size-single" type="number" min="0" step="1" placeholder="Ej. 473" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unidad de medida</label>
+          <select class="form-input" id="f-unit-single">
+            <option value="mL">mL</option>
+            <option value="g">g</option>
+            <option value="pz">pz</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CAMPOS: pre-entreno / polvo multi-porción -->
+      <div class="conditional-fields" id="cf-multi">
+        <div class="form-group full" style="grid-column:1/-1">
+          <div class="form-hint" style="margin:0;padding:0.4rem 0.6rem;background:var(--surface);border-radius:var(--radius-sm);border-left:2px solid var(--purple)">
+            💡 Para pre-entrenos: precio del bote completo ÷ (porciones × mg por porción) = costo por mg.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Porciones totales *</label>
+          <input class="form-input" id="f-servings" type="number" min="1" step="1" placeholder="Ej. 30" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cafeína por porción (mg) *</label>
+          <input class="form-input" id="f-mg-serving" type="number" min="0" step="1" placeholder="Ej. 120" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio total ($) *</label>
+          <input class="form-input" id="f-price-multi" type="number" min="0" step="0.5" placeholder="Ej. 470" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Peso por porción (g)</label>
+          <input class="form-input" id="f-weight-serving" type="number" min="0" step="0.1" placeholder="Ej. 10" oninput="calcScores()" />
+        </div>
+      </div>
+
+      <!-- CAMPOS: pastilla/cápsula -->
+      <div class="conditional-fields" id="cf-pill">
+        <div class="form-group full" style="grid-column:1/-1">
+          <div class="form-hint" style="margin:0;padding:0.4rem 0.6rem;background:var(--surface);border-radius:var(--radius-sm);border-left:2px solid var(--blue)">
+            💡 Para pastillas/cápsulas: ingresa la cantidad en el paquete, mg por pieza y el precio del paquete.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Piezas en el paquete *</label>
+          <input class="form-input" id="f-pills-count" type="number" min="1" step="1" placeholder="Ej. 100" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cafeína por pieza (mg) *</label>
+          <input class="form-input" id="f-mg-pill" type="number" min="0" step="1" placeholder="Ej. 200" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio del paquete ($) *</label>
+          <input class="form-input" id="f-price-pill" type="number" min="0" step="0.5" placeholder="Ej. 150" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Peso por pieza (mg→g)</label>
+          <input class="form-input" id="f-weight-pill" type="number" min="0" step="0.001" placeholder="Ej. 0.5" oninput="calcScores()" />
+        </div>
+      </div>
+
+      <!-- CAMPOS: pouch -->
+      <div class="conditional-fields" id="cf-pouch">
+        <div class="form-group full" style="grid-column:1/-1">
+          <div class="form-hint" style="margin:0;padding:0.4rem 0.6rem;background:var(--surface);border-radius:var(--radius-sm);border-left:2px solid #4fe89e">
+            💡 Para pouches/snus: cafeína por pouch, cuántos trae la lata y el precio de la lata.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pouches por lata *</label>
+          <input class="form-input" id="f-pouch-count" type="number" min="1" step="1" placeholder="Ej. 20" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cafeína por pouch (mg) *</label>
+          <input class="form-input" id="f-mg-pouch" type="number" min="0" step="1" placeholder="Ej. 40" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio lata ($) *</label>
+          <input class="form-input" id="f-price-pouch" type="number" min="0" step="0.5" placeholder="Ej. 200" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Peso por pouch (g)</label>
+          <input class="form-input" id="f-weight-pouch" type="number" min="0" step="0.01" placeholder="Ej. 0.7" oninput="calcScores()" />
+        </div>
+      </div>
+
+      <!-- CAMPOS: café/té -->
+      <div class="conditional-fields" id="cf-brew">
+        <div class="form-group full" style="grid-column:1/-1">
+          <div class="form-hint" style="margin:0;padding:0.4rem 0.6rem;background:var(--surface);border-radius:var(--radius-sm);border-left:2px solid #c9a76c">
+            💡 Para café/té: precio por unidad (taza, sobre, cápsula), mg aproximados y ml/g del producto.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cafeína por taza/porción (mg) *</label>
+          <input class="form-input" id="f-mg-brew" type="number" min="0" step="1" placeholder="Ej. 95" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio por taza/porción ($) *</label>
+          <input class="form-input" id="f-price-brew" type="number" min="0" step="0.5" placeholder="Ej. 25" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Volumen (mL) / Peso (g)</label>
+          <input class="form-input" id="f-size-brew" type="number" min="0" step="1" placeholder="Ej. 240" oninput="calcScores()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unidad</label>
+          <select class="form-input" id="f-unit-brew">
+            <option value="mL">mL</option>
+            <option value="g">g</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="divider" style="grid-column:1/-1" />
+
+      <!-- Practicidad slider -->
+      <div class="form-group full">
+        <div class="slider-header">
+          <label class="form-label">Practicidad</label>
+          <span class="slider-val" id="practVal">3</span>
+        </div>
+        <input type="range" id="f-pract" min="1" max="5" step="1" value="3"
+               oninput="document.getElementById('practVal').textContent=this.value; calcScores()" />
+        <div class="form-hint">1 = muy difícil de conseguir/preparar · 5 = tienes cafeína en segundos</div>
+      </div>
+
+      <!-- Preview scores -->
+      <div class="form-group full">
+        <div class="slider-header" style="margin-bottom:0.4rem">
+          <label class="form-label">Vista previa de puntajes</label>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <div class="score-card" style="flex:1;text-align:center;">
+            <div class="score-card-label">Practicidad</div>
+            <div class="score-card-val pract" id="prev-pract">—</div>
+          </div>
+          <div class="score-card" style="flex:1;text-align:center;">
+            <div class="score-card-label">Precio/mg</div>
+            <div class="score-card-val price" id="prev-price">—</div>
+          </div>
+          <div class="score-card" style="flex:1;text-align:center;">
+            <div class="score-card-label">Potencia</div>
+            <div class="score-card-val pot" id="prev-pot">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notas -->
+      <div class="form-group full">
+        <label class="form-label">Notas / descripción</label>
+        <textarea class="form-input" id="f-notes" placeholder="Ej. Sabor excelente, fácil de encontrar en OXXO…"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Guardar producto</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── State ── */
+let products = JSON.parse(localStorage.getItem('caflister-v2') || '[]');
+let selectedId = null;
+let editingId = null;
+let radarChart = null;
+
+/* ── Helpers ── */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+const TYPE_LABELS = {
+  energy:'Energizante', pre:'Pre-entreno', coffee:'Café', tea:'Té',
+  pill:'Pastilla/Cápsula', pouch:'Pouch/Snus', shot:'Shot', other:'Otro'
+};
+
+function save() { localStorage.setItem('caflister-v2', JSON.stringify(products)); }
+
+/* ── Price score: lower price/mg = higher score ── */
+function pricePerMg(p) {
+  if (p.type === 'energy' || p.type === 'shot' || p.type === 'other') {
+    if (!p.mgTotal || !p.priceSingle) return null;
+    return p.priceSingle / p.mgTotal;
+  }
+  if (p.type === 'pre') {
+    if (!p.servings || !p.mgServing || !p.priceMulti) return null;
+    return p.priceMulti / (p.servings * p.mgServing);
+  }
+  if (p.type === 'pill') {
+    if (!p.pillsCount || !p.mgPill || !p.pricePill) return null;
+    return p.pricePill / (p.pillsCount * p.mgPill);
+  }
+  if (p.type === 'pouch') {
+    if (!p.pouchCount || !p.mgPouch || !p.pricePouch) return null;
+    return p.pricePouch / (p.pouchCount * p.mgPouch);
+  }
+  if (p.type === 'coffee' || p.type === 'tea') {
+    if (!p.mgBrew || !p.priceBrew) return null;
+    return p.priceBrew / p.mgBrew;
+  }
+  return null;
+}
+
+/* ── Potencia (mg per unit) ── */
+function potencia(p) {
+  if (p.type === 'energy' || p.type === 'shot' || p.type === 'other') {
+    if (!p.mgTotal) return null;
+    if (p.sizeSingle && p.unitSingle !== 'pz') return p.mgTotal / p.sizeSingle; // mg/mL or mg/g
+    return p.mgTotal; // mg/pz
+  }
+  if (p.type === 'pre') {
+    if (!p.mgServing) return null;
+    if (p.weightServing) return p.mgServing / p.weightServing; // mg/g
+    return p.mgServing; // mg/porcion
+  }
+  if (p.type === 'pill') {
+    if (!p.mgPill) return null;
+    if (p.weightPill) return p.mgPill / p.weightPill;
+    return p.mgPill;
+  }
+  if (p.type === 'pouch') {
+    if (!p.mgPouch) return null;
+    if (p.weightPouch) return p.mgPouch / p.weightPouch;
+    return p.mgPouch;
+  }
+  if (p.type === 'coffee' || p.type === 'tea') {
+    if (!p.mgBrew) return null;
+    if (p.sizeBrew) return p.mgBrew / p.sizeBrew;
+    return p.mgBrew;
+  }
+  return null;
+}
+
+/* Map raw score to 1–5 based on dataset percentiles */
+function scorePrice(val) {
+  if (val == null) return 0;
+  // lower is better: $0.1/mg = very cheap → 5, $5/mg = very expensive → 1
+  if (val <= 0.05) return 5;
+  if (val <= 0.15) return 4;
+  if (val <= 0.30) return 3;
+  if (val <= 0.60) return 2;
+  return 1;
+}
+
+function scorePotencia(val) {
+  if (val == null) return 0;
+  // higher mg/unit = better potencia
+  if (val >= 100) return 5;
+  if (val >= 40) return 4;
+  if (val >= 10) return 3;
+  if (val >= 2) return 2;
+  return 1;
+}
+
+function computeScores(p) {
+  const pr = pricePerMg(p);
+  const po = potencia(p);
+  return {
+    practicidad: p.practicidad || 0,
+    precio: scorePrice(pr),
+    potencia: scorePotencia(po),
+    pricePerMgRaw: pr,
+    potenciaRaw: po
+  };
+}
+
+/* ── Render product list ── */
+function renderList() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const typeF = document.getElementById('typeFilter').value;
+  const list = document.getElementById('productList');
+  const filtered = products.filter(p => {
+    if (typeF && p.type !== typeF) return false;
+    if (search && !p.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  document.getElementById('countBadge').textContent = products.length;
+
+  if (!products.length) {
+    list.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+      <p>No hay productos aún.<br/>Agrega tu primera fuente de cafeína 🚀</p>
+    </div>`;
+    return;
+  }
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><p>Sin resultados para tu búsqueda.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => {
+    const s = computeScores(p);
+    const tagClass = p.type || 'other';
+    const tagLabel = TYPE_LABELS[p.type] || 'Otro';
+    const pr = s.pricePerMgRaw != null ? `$${s.pricePerMgRaw.toFixed(2)}/mg` : '—';
+    const po = s.potenciaRaw != null ? `${s.potenciaRaw % 1 !== 0 ? s.potenciaRaw.toFixed(1) : s.potenciaRaw} mg/u` : '—';
+    return `
+    <div class="product-card ${selectedId === p.id ? 'selected' : ''}" onclick="selectProduct('${p.id}')">
+      <div class="product-card-main">
+        <div class="product-name">${escHtml(p.name)}</div>
+        <div class="product-meta">
+          <span class="tag ${tagClass}">${tagLabel}</span>
+        </div>
+        <div class="stat-row">
+          <div class="stat-mini">
+            <span class="stat-mini-label">Pract.</span>
+            <span class="stat-mini-val">${s.practicidad}/5</span>
+          </div>
+          <div class="stat-mini">
+            <span class="stat-mini-label">$/mg</span>
+            <span class="stat-mini-val" style="color:var(--orange)">${pr}</span>
+          </div>
+          <div class="stat-mini">
+            <span class="stat-mini-label">Potencia</span>
+            <span class="stat-mini-val" style="color:var(--blue)">${po}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="icon-btn" onclick="event.stopPropagation(); openModal('${p.id}')" title="Editar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="icon-btn del" onclick="event.stopPropagation(); deleteProduct('${p.id}')" title="Eliminar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Select & radar ── */
+function selectProduct(id) {
+  selectedId = id;
+  renderList();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const s = computeScores(p);
+  document.getElementById('scoresGrid').style.display = 'grid';
+  document.getElementById('detailSection').style.display = 'block';
+  document.getElementById('noSelection').style.display = 'none';
+  document.getElementById('scPract').textContent = s.practicidad + '/5';
+  document.getElementById('scPrice').textContent = s.pricePerMgRaw != null ? `$${s.pricePerMgRaw.toFixed(2)}/mg` : '—';
+  document.getElementById('scPot').textContent = s.potenciaRaw != null ? `${s.potenciaRaw % 1 !== 0 ? s.potenciaRaw.toFixed(1) : s.potenciaRaw} mg/u` : '—';
+  renderDetail(p, s);
+  renderRadar(s);
+}
+
+function renderDetail(p, s) {
+  const lines = [];
+  if (p.type === 'energy' || p.type === 'shot' || p.type === 'other') {
+    if (p.mgTotal) lines.push(['Cafeína total', `${p.mgTotal} mg`]);
+    if (p.priceSingle) lines.push(['Precio', `$${p.priceSingle}`]);
+    if (p.sizeSingle) lines.push(['Tamaño', `${p.sizeSingle} ${p.unitSingle || 'mL'}`]);
+  } else if (p.type === 'pre') {
+    if (p.servings && p.mgServing) lines.push(['Cafeína total', `${(p.servings * p.mgServing).toFixed(0)} mg (${p.servings} porciones × ${p.mgServing} mg)`]);
+    if (p.priceMulti) lines.push(['Precio', `$${p.priceMulti}`]);
+    if (p.weightServing) lines.push(['Peso por porción', `${p.weightServing} g`]);
+  } else if (p.type === 'pill') {
+    if (p.pillsCount && p.mgPill) lines.push(['Cafeína total', `${(p.pillsCount * p.mgPill).toFixed(0)} mg (${p.pillsCount} pzs × ${p.mgPill} mg)`]);
+    if (p.pricePill) lines.push(['Precio del paquete', `$${p.pricePill}`]);
+  } else if (p.type === 'pouch') {
+    if (p.pouchCount && p.mgPouch) lines.push(['Cafeína total', `${(p.pouchCount * p.mgPouch).toFixed(0)} mg (${p.pouchCount} pouches × ${p.mgPouch} mg)`]);
+    if (p.pricePouch) lines.push(['Precio lata', `$${p.pricePouch}`]);
+    if (p.weightPouch) lines.push(['Peso por pouch', `${p.weightPouch} g`]);
+  } else if (p.type === 'coffee' || p.type === 'tea') {
+    if (p.mgBrew) lines.push(['Cafeína por porción', `${p.mgBrew} mg`]);
+    if (p.priceBrew) lines.push(['Precio por porción', `$${p.priceBrew}`]);
+    if (p.sizeBrew) lines.push(['Volumen/Peso', `${p.sizeBrew} ${p.unitBrew || 'mL'}`]);
+  }
+  lines.push(['Tipo', TYPE_LABELS[p.type] || 'Otro']);
+  if (p.notes) lines.push(['Notas', p.notes]);
+
+  document.getElementById('detailContent').innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+      ${lines.map(([k, v]) => `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:0.55rem 0.9rem;border-bottom:1px solid var(--border);gap:1rem;">
+          <span style="font-size:0.75rem;color:var(--text2);white-space:nowrap;">${k}</span>
+          <span style="font-size:0.78rem;text-align:right;color:var(--text);font-family:var(--mono);">${escHtml(String(v))}</span>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function renderRadar(s) {
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  const data = {
+    labels: ['Practicidad', 'Precio (valor)', 'Potencia'],
+    datasets: [{
+      data: [s.practicidad, s.precio, s.potencia],
+      backgroundColor: 'rgba(200,251,78,0.12)',
+      borderColor: '#c8fb4e',
+      borderWidth: 2,
+      pointBackgroundColor: '#c8fb4e',
+      pointBorderColor: '#c8fb4e',
+      pointRadius: 5,
+      pointHoverRadius: 7,
+    }]
+  };
+  if (radarChart) radarChart.destroy();
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          min: 0, max: 5,
+          ticks: {
+            stepSize: 1,
+            color: '#55556a',
+            backdropColor: 'transparent',
+            font: { size: 10, family: 'DM Mono' }
+          },
+          grid: { color: 'rgba(255,255,255,0.07)' },
+          angleLines: { color: 'rgba(255,255,255,0.07)' },
+          pointLabels: {
+            color: '#8888a8',
+            font: { size: 12, family: 'Syne', weight: '600' }
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ── Modal ── */
+const CONDITIONAL_GROUPS = {
+  energy: ['cf-single'], shot: ['cf-single'], other: ['cf-single'],
+  pre: ['cf-multi'],
+  pill: ['cf-pill'],
+  pouch: ['cf-pouch'],
+  coffee: ['cf-brew'], tea: ['cf-brew']
+};
+
+function onTypeChange() {
+  const type = document.getElementById('f-type').value;
+  ['cf-single','cf-multi','cf-pill','cf-pouch','cf-brew'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  if (type && CONDITIONAL_GROUPS[type]) {
+    CONDITIONAL_GROUPS[type].forEach(id => document.getElementById(id).classList.add('active'));
+  }
+  calcScores();
+}
+
+function openModal(id = null) {
+  editingId = id;
+  document.getElementById('modalTitle').textContent = id ? 'Editar producto' : 'Nuevo producto';
+  resetForm();
+  if (id) {
+    const p = products.find(x => x.id === id);
+    if (p) fillForm(p);
+  }
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editingId = null;
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function resetForm() {
+  ['f-name','f-mg-total','f-price-single','f-size-single','f-servings','f-mg-serving','f-price-multi',
+   'f-weight-serving','f-pills-count','f-mg-pill','f-price-pill','f-weight-pill','f-pouch-count',
+   'f-mg-pouch','f-price-pouch','f-weight-pouch','f-mg-brew','f-price-brew','f-size-brew','f-notes']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('f-type').value = '';
+  document.getElementById('f-unit-single').value = 'mL';
+  document.getElementById('f-unit-brew').value = 'mL';
+  document.getElementById('f-pract').value = 3;
+  document.getElementById('practVal').textContent = '3';
+  ['cf-single','cf-multi','cf-pill','cf-pouch','cf-brew'].forEach(id =>
+    document.getElementById(id).classList.remove('active'));
+  ['prev-pract','prev-price','prev-pot'].forEach(id =>
+    document.getElementById(id).textContent = '—');
+}
+
+function fillForm(p) {
+  document.getElementById('f-name').value = p.name || '';
+  document.getElementById('f-type').value = p.type || '';
+  onTypeChange();
+  document.getElementById('f-pract').value = p.practicidad || 3;
+  document.getElementById('practVal').textContent = p.practicidad || 3;
+  document.getElementById('f-notes').value = p.notes || '';
+
+  if (['energy','shot','other'].includes(p.type)) {
+    document.getElementById('f-mg-total').value = p.mgTotal || '';
+    document.getElementById('f-price-single').value = p.priceSingle || '';
+    document.getElementById('f-size-single').value = p.sizeSingle || '';
+    document.getElementById('f-unit-single').value = p.unitSingle || 'mL';
+  } else if (p.type === 'pre') {
+    document.getElementById('f-servings').value = p.servings || '';
+    document.getElementById('f-mg-serving').value = p.mgServing || '';
+    document.getElementById('f-price-multi').value = p.priceMulti || '';
+    document.getElementById('f-weight-serving').value = p.weightServing || '';
+  } else if (p.type === 'pill') {
+    document.getElementById('f-pills-count').value = p.pillsCount || '';
+    document.getElementById('f-mg-pill').value = p.mgPill || '';
+    document.getElementById('f-price-pill').value = p.pricePill || '';
+    document.getElementById('f-weight-pill').value = p.weightPill || '';
+  } else if (p.type === 'pouch') {
+    document.getElementById('f-pouch-count').value = p.pouchCount || '';
+    document.getElementById('f-mg-pouch').value = p.mgPouch || '';
+    document.getElementById('f-price-pouch').value = p.pricePouch || '';
+    document.getElementById('f-weight-pouch').value = p.weightPouch || '';
+  } else if (['coffee','tea'].includes(p.type)) {
+    document.getElementById('f-mg-brew').value = p.mgBrew || '';
+    document.getElementById('f-price-brew').value = p.priceBrew || '';
+    document.getElementById('f-size-brew').value = p.sizeBrew || '';
+    document.getElementById('f-unit-brew').value = p.unitBrew || 'mL';
+  }
+  calcScores();
+}
+
+function calcScores() {
+  const type = document.getElementById('f-type').value;
+  const pract = parseInt(document.getElementById('f-pract').value) || 0;
+  const tempP = { type, practicidad: pract };
+
+  if (['energy','shot','other'].includes(type)) {
+    tempP.mgTotal = parseFloat(document.getElementById('f-mg-total').value) || 0;
+    tempP.priceSingle = parseFloat(document.getElementById('f-price-single').value) || 0;
+    tempP.sizeSingle = parseFloat(document.getElementById('f-size-single').value) || 0;
+    tempP.unitSingle = document.getElementById('f-unit-single').value;
+  } else if (type === 'pre') {
+    tempP.servings = parseFloat(document.getElementById('f-servings').value) || 0;
+    tempP.mgServing = parseFloat(document.getElementById('f-mg-serving').value) || 0;
+    tempP.priceMulti = parseFloat(document.getElementById('f-price-multi').value) || 0;
+    tempP.weightServing = parseFloat(document.getElementById('f-weight-serving').value) || 0;
+  } else if (type === 'pill') {
+    tempP.pillsCount = parseFloat(document.getElementById('f-pills-count').value) || 0;
+    tempP.mgPill = parseFloat(document.getElementById('f-mg-pill').value) || 0;
+    tempP.pricePill = parseFloat(document.getElementById('f-price-pill').value) || 0;
+    tempP.weightPill = parseFloat(document.getElementById('f-weight-pill').value) || 0;
+  } else if (type === 'pouch') {
+    tempP.pouchCount = parseFloat(document.getElementById('f-pouch-count').value) || 0;
+    tempP.mgPouch = parseFloat(document.getElementById('f-mg-pouch').value) || 0;
+    tempP.pricePouch = parseFloat(document.getElementById('f-price-pouch').value) || 0;
+    tempP.weightPouch = parseFloat(document.getElementById('f-weight-pouch').value) || 0;
+  } else if (['coffee','tea'].includes(type)) {
+    tempP.mgBrew = parseFloat(document.getElementById('f-mg-brew').value) || 0;
+    tempP.priceBrew = parseFloat(document.getElementById('f-price-brew').value) || 0;
+    tempP.sizeBrew = parseFloat(document.getElementById('f-size-brew').value) || 0;
+    tempP.unitBrew = document.getElementById('f-unit-brew').value;
+  }
+
+  const s = computeScores(tempP);
+  document.getElementById('prev-pract').textContent = s.practicidad ? s.practicidad + '/5' : '—';
+  document.getElementById('prev-price').textContent = s.pricePerMgRaw != null ? '$' + s.pricePerMgRaw.toFixed(2) + '/mg' : '—';
+  document.getElementById('prev-pot').textContent = s.potenciaRaw != null ? (s.potenciaRaw % 1 !== 0 ? s.potenciaRaw.toFixed(1) : s.potenciaRaw) + ' mg/u' : '—';
+}
+
+function saveProduct() {
+  const type = document.getElementById('f-type').value;
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('El nombre es requerido.'); return; }
+  if (!type) { alert('Selecciona el tipo de producto.'); return; }
+
+  const p = {
+    id: editingId || uid(),
+    name, type,
+    practicidad: parseInt(document.getElementById('f-pract').value) || 3,
+    notes: document.getElementById('f-notes').value.trim()
+  };
+
+  if (['energy','shot','other'].includes(type)) {
+    p.mgTotal = parseFloat(document.getElementById('f-mg-total').value) || 0;
+    p.priceSingle = parseFloat(document.getElementById('f-price-single').value) || 0;
+    p.sizeSingle = parseFloat(document.getElementById('f-size-single').value) || 0;
+    p.unitSingle = document.getElementById('f-unit-single').value;
+  } else if (type === 'pre') {
+    p.servings = parseFloat(document.getElementById('f-servings').value) || 0;
+    p.mgServing = parseFloat(document.getElementById('f-mg-serving').value) || 0;
+    p.priceMulti = parseFloat(document.getElementById('f-price-multi').value) || 0;
+    p.weightServing = parseFloat(document.getElementById('f-weight-serving').value) || 0;
+  } else if (type === 'pill') {
+    p.pillsCount = parseFloat(document.getElementById('f-pills-count').value) || 0;
+    p.mgPill = parseFloat(document.getElementById('f-mg-pill').value) || 0;
+    p.pricePill = parseFloat(document.getElementById('f-price-pill').value) || 0;
+    p.weightPill = parseFloat(document.getElementById('f-weight-pill').value) || 0;
+  } else if (type === 'pouch') {
+    p.pouchCount = parseFloat(document.getElementById('f-pouch-count').value) || 0;
+    p.mgPouch = parseFloat(document.getElementById('f-mg-pouch').value) || 0;
+    p.pricePouch = parseFloat(document.getElementById('f-price-pouch').value) || 0;
+    p.weightPouch = parseFloat(document.getElementById('f-weight-pouch').value) || 0;
+  } else if (['coffee','tea'].includes(type)) {
+    p.mgBrew = parseFloat(document.getElementById('f-mg-brew').value) || 0;
+    p.priceBrew = parseFloat(document.getElementById('f-price-brew').value) || 0;
+    p.sizeBrew = parseFloat(document.getElementById('f-size-brew').value) || 0;
+    p.unitBrew = document.getElementById('f-unit-brew').value;
+  }
+
+  if (editingId) {
+    const idx = products.findIndex(x => x.id === editingId);
+    if (idx >= 0) products[idx] = p;
+  } else {
+    products.unshift(p);
+  }
+
+  save();
+  closeModal();
+  renderList();
+  if (selectedId === p.id || (!editingId)) {
+    selectedId = p.id;
+    selectProduct(p.id);
+  }
+}
+
+function deleteProduct(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+  products = products.filter(p => p.id !== id);
+  if (selectedId === id) {
+    selectedId = null;
+    document.getElementById('scoresGrid').style.display = 'none';
+    document.getElementById('detailSection').style.display = 'none';
+    document.getElementById('noSelection').style.display = 'flex';
+    if (radarChart) { radarChart.destroy(); radarChart = null; }
+  }
+  save();
+  renderList();
+}
+
+/* ── CSV Export ── */
+function exportCSV() {
+  const headers = ['id','name','type','practicidad','notes',
+    'mgTotal','priceSingle','sizeSingle','unitSingle',
+    'servings','mgServing','priceMulti','weightServing',
+    'pillsCount','mgPill','pricePill','weightPill',
+    'pouchCount','mgPouch','pricePouch','weightPouch',
+    'mgBrew','priceBrew','sizeBrew','unitBrew',
+    'score_practicidad','score_precio','score_potencia','pricePerMg_raw','potencia_raw'];
+
+  const rows = products.map(p => {
+    const s = computeScores(p);
+    return headers.map(h => {
+      if (h === 'score_practicidad') return s.practicidad;
+      if (h === 'score_precio') return s.precio;
+      if (h === 'score_potencia') return s.potencia;
+      if (h === 'pricePerMg_raw') return s.pricePerMgRaw != null ? s.pricePerMgRaw.toFixed(4) : '';
+      if (h === 'potencia_raw') return s.potenciaRaw != null ? s.potenciaRaw.toFixed(4) : '';
+      const v = p[h];
+      if (v == null || v === undefined) return '';
+      const str = String(v);
+      return str.includes(',') || str.includes('"') || str.includes('\n')
+        ? `"${str.replace(/"/g,'""')}"` : str;
+    }).join(',');
+  });
+
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'caflister_export.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ── CSV Import ── */
+function importCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { alert('CSV vacío o inválido.'); return; }
+    const headers = parseCSVLine(lines[0]);
+    let imported = 0;
+    for (let i = 1; i < lines.length; i++) {
+      const vals = parseCSVLine(lines[i]);
+      if (vals.length < 2) continue;
+      const obj = {};
+      headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; });
+      const p = {
+        id: obj.id || uid(),
+        name: obj.name || 'Sin nombre',
+        type: obj.type || 'other',
+        practicidad: parseFloat(obj.practicidad) || 3,
+        notes: obj.notes || '',
+        mgTotal: parseFloat(obj.mgTotal) || 0,
+        priceSingle: parseFloat(obj.priceSingle) || 0,
+        sizeSingle: parseFloat(obj.sizeSingle) || 0,
+        unitSingle: obj.unitSingle || 'mL',
+        servings: parseFloat(obj.servings) || 0,
+        mgServing: parseFloat(obj.mgServing) || 0,
+        priceMulti: parseFloat(obj.priceMulti) || 0,
+        weightServing: parseFloat(obj.weightServing) || 0,
+        pillsCount: parseFloat(obj.pillsCount) || 0,
+        mgPill: parseFloat(obj.mgPill) || 0,
+        pricePill: parseFloat(obj.pricePill) || 0,
+        weightPill: parseFloat(obj.weightPill) || 0,
+        pouchCount: parseFloat(obj.pouchCount) || 0,
+        mgPouch: parseFloat(obj.mgPouch) || 0,
+        pricePouch: parseFloat(obj.pricePouch) || 0,
+        weightPouch: parseFloat(obj.weightPouch) || 0,
+        mgBrew: parseFloat(obj.mgBrew) || 0,
+        priceBrew: parseFloat(obj.priceBrew) || 0,
+        sizeBrew: parseFloat(obj.sizeBrew) || 0,
+        unitBrew: obj.unitBrew || 'mL',
+      };
+      const exists = products.findIndex(x => x.id === p.id);
+      if (exists >= 0) products[exists] = p;
+      else products.unshift(p);
+      imported++;
+    }
+    save();
+    renderList();
+    alert(`✅ ${imported} producto(s) importado(s).`);
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      result.push(cur); cur = '';
+    } else cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+/* ── Init ── */
+renderList();
+</script>
+</body>
+</html>
